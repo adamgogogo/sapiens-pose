@@ -72,6 +72,7 @@ class Config:
     CHECKPOINTS_DIR = os.path.join(ASSETS_DIR, "checkpoints")
     CHECKPOINTS = {
         "0.3b": "sapiens_0.3b_goliath_best_goliath_AP_575_torchscript.pt2",
+        "0.6b": "sapiens_0.6b_goliath_best_goliath_AP_600_torchscript.pt2",
         "1b": "sapiens_1b_goliath_best_goliath_AP_640_torchscript.pt2",
     }
     DETECTION_CHECKPOINT = os.path.join(CHECKPOINTS_DIR, 'rtmdet_m_8xb32-100e_coco-obj365-person-235e8209.pth')
