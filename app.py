@@ -143,7 +143,7 @@ class ImageProcessor:
             cropped_img = self.crop_image(result_image, bbox)
             input_tensor = self.transform(cropped_img).unsqueeze(0).to("cuda")
             heatmaps = ModelManager.run_model(pose_model, input_tensor)
-            keypoints = self.heatmaps_to_keypoints(heatmaps[0].cpu().numpy())
+            keypoints = self.heatmaps_to_keypoints(heatmaps[0].cpu().numpy(), bbox)
             all_keypoints.append(keypoints)  # Collect keypoints
             result_image = self.draw_keypoints(result_image, keypoints, bbox, kpt_threshold)
         
@@ -166,15 +166,22 @@ class ImageProcessor:
         return crop
 
     @staticmethod
-    def heatmaps_to_keypoints(heatmaps):
+    def heatmaps_to_keypoints(heatmaps, bbox):
         num_joints = heatmaps.shape[0]  # Should be 308
         keypoints = {}
+        x1, y1, x2, y2 = map(int, bbox[:4])
+        bbox_width = x2 - x1
+        bbox_height = y2 - y1
+        
         for i, name in enumerate(GOLIATH_KEYPOINTS):
             if i < num_joints:
                 heatmap = heatmaps[i]
                 y, x = np.unravel_index(np.argmax(heatmap), heatmap.shape)
                 conf = heatmap[y, x]
-                keypoints[name] = (float(x), float(y), float(conf))
+                # Convert coordinates to image frame
+                x_image = x * bbox_width / 192 + x1
+                y_image = y * bbox_height / 256 + y1
+                keypoints[name] = (float(x_image), float(y_image), float(conf))
         return keypoints
 
     @staticmethod
@@ -203,8 +210,8 @@ class ImageProcessor:
         # Draw keypoints
         for i, (name, (x, y, conf)) in enumerate(keypoints.items()):
             if conf > kpt_threshold and i < len(GOLIATH_KPTS_COLORS):
-                x_coord = int(x * bbox_width / 192) + x1
-                y_coord = int(y * bbox_height / 256) + y1
+                x_coord = int(x)
+                y_coord = int(y)
                 color = GOLIATH_KPTS_COLORS[i]
                 cv2.circle(image, (x_coord, y_coord), radius, color, -1)
 
@@ -217,10 +224,10 @@ class ImageProcessor:
                 pt1 = keypoints[pt1_name]
                 pt2 = keypoints[pt2_name]
                 if pt1[2] > kpt_threshold and pt2[2] > kpt_threshold:
-                    x1_coord = int(pt1[0] * bbox_width / 192) + x1
-                    y1_coord = int(pt1[1] * bbox_height / 256) + y1
-                    x2_coord = int(pt2[0] * bbox_width / 192) + x1
-                    y2_coord = int(pt2[1] * bbox_height / 256) + y1
+                    x1_coord = int(pt1[0])
+                    y1_coord = int(pt1[1])
+                    x2_coord = int(pt2[0])
+                    y2_coord = int(pt2[1])
                     cv2.line(image, (x1_coord, y1_coord), (x2_coord, y2_coord), color, thickness=thickness)
 
         return Image.fromarray(image)
