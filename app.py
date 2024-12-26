@@ -23,6 +23,8 @@ import os
 import sys
 import subprocess
 import importlib.util
+import hack_registry
+import mmdet
 
 def is_package_installed(package_name):
     return importlib.util.find_spec(package_name) is not None
